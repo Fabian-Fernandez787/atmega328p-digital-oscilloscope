@@ -27,6 +27,16 @@ A high-performance, bare-metal digital oscilloscope built on the ATmega328P micr
 - **Input Channel:** ADC0 (Arduino Pin A0)
 - **Optimization:** Disables digital input buffer on Pin A0 via `DIDR0 |= (1 << ADC0D)` to minimize signal noise.
 
+### Hardware Timer Interrupts & Auto-Triggered ADC (Phase 3)
+- **Sampling Engine:** Autonomous hardware-triggered ADC conversion (Zero CPU polling overhead).
+- **Timer Configuration:** 
+  - **Timer1** running in **CTC Mode** (Clear Timer on Compare, `WGM12 = 1`).
+  - **Prescaler:** 64 ($\text{Timer Clock} = 16\text{ MHz} / 64 = 250\text{ kHz}$).
+  - **Match Register (`OCR1A` / `OCR1B`):** Set to **249** to achieve an exact **1 kHz sample rate** ($1,000\text{ samples/sec}$).
+- **Auto-Trigger Mechanism:** Timer1 Compare Match B configured as the ADC trigger source (`ADCSRB` set to `ADTS2:0 = 101`).
+- **Interrupt Routing:** ISR vector `ADC_vect` fires automatically upon conversion completion.
+- **Throughput Optimization:** Replaced slow ASCII text streaming with **raw 16-bit binary transmission** (2 bytes per sample: High Byte followed by Low Byte) via UART at 115200 Baud, keeping data rates at ~2,000 bytes/sec—well below the UART hardware limit.
+
 ---
 
 ## 3. How to Build & Flash
