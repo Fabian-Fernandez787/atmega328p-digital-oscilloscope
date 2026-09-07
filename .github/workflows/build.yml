@@ -1,8 +1,8 @@
-name: AVR Build Check
+name: Build AVR Firmware
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "feature/**" ]
   pull_request:
     branches: [ "main" ]
 
@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Code
+    - name: Checkout Repository
       uses: actions/checkout@v4
 
     - name: Install AVR Toolchain
@@ -19,5 +19,6 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y gcc-avr avr-libc make
 
-    - name: Run Build
-      run: make
+    - name: Compile Firmware
+      run: |
+        make
