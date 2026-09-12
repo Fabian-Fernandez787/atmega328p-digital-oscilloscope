@@ -21,7 +21,7 @@ A high-performance, bare-metal digital oscilloscope built on the ATmega328P micr
 - **Baud Rate Error:** $+2.1\%$
 
 ### ADC Sampling Engine (Phase 2)
-- **Resolution:** 10-bit (0–1023 digital output)
+- **Resolution:** 10-bit ($0–1023$ digital output)
 - **Voltage Reference:** $V_{\text{CC}}$ (~4.9V USB bus)
 - **Prescaler:** 128 ($\text{ADC Clock} = 16\text{ MHz} / 128 = 125\text{ kHz}$)
 - **Input Channel:** ADC0 (Arduino Pin A0)
@@ -35,13 +35,22 @@ A high-performance, bare-metal digital oscilloscope built on the ATmega328P micr
   - **Match Register (`OCR1A` / `OCR1B`):** Set to **249** to achieve an exact **1 kHz sample rate** ($1,000\text{ samples/sec}$).
 - **Auto-Trigger Mechanism:** Timer1 Compare Match B configured as the ADC trigger source (`ADCSRB` set to `ADTS2:0 = 101`).
 - **Interrupt Routing:** ISR vector `ADC_vect` fires automatically upon conversion completion.
-- **Throughput Optimization:** Replaced slow ASCII text streaming with **raw 16-bit binary transmission** (2 bytes per sample: High Byte followed by Low Byte) via UART at 115200 Baud, keeping data rates at ~2,000 bytes/sec—well below the UART hardware limit.
+- **Throughput Optimization:** Replaced slow ASCII text streaming with **raw binary transmission** (2 bytes per sample) via UART at 115,200 Baud, keeping data rates at $\approx 2,000\text{ bytes/sec}$—well below UART hardware capacity limits.
+
+### Stream Capture & Framing Protocol (Phase 4)
+- **Data Framing:** Implemented a custom 2-byte binary packet structure to eliminate byte misalignment during live capture:
+  - **Header Byte (`b1`):** `0x80 | ((ADC >> 7) & 0x07)` $\rightarrow$ Bit 7 is forced high (`1`) to mark frame start; carries 3 MSBs (`ADC[9:7]`).
+  - **Payload Byte (`b2`):** `ADC & 0x7F` $\rightarrow$ Bit 7 is forced low (`0`) as a data tag; carries 7 LSBs (`ADC[6:0]`).
+- **Timing Pacing:** Paced by Timer1 CTC mode at 1 kHz to maintain strict deterministic sampling without ISR blocking or UART queue lockups.
+- **Python Parser (`host/parser.py`):** Reconstructs true 10-bit resolution ($0–1023$) using bitwise operations:
+  $$\text{ADC Sample} = ((\text{b1} \:\&\: \text{0x07}) \ll 7) \:|\: (\text{b2} \:\&\: \text{0x7F})$$
+- **Stream Verification:** Verified raw binary hex stream over UART at 115,200 Baud using real-time voltage decoding scripts.
 
 ---
 
 ## 3. How to Build & Flash
 
-1. Connect the Arduino Uno to your PC and verify the serial port in `Makefile` (`PORT = COM5`).
-2. Compile the source C code:
+1. Connect the Arduino Uno to your PC and verify the target serial port in `Makefile` (e.g., `PORT = COM5`).
+2. Build the target executable:
    ```bash
    make
