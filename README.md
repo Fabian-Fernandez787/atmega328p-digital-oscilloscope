@@ -64,3 +64,4 @@ $$\text{ADC Sample} = ((b_1 \ \& \ 0\text{x}07) \ll 7) \ | \ (b_2 \ \& \ 0\text{
 2. Build the target executable:
    ```bash
    make
+   
