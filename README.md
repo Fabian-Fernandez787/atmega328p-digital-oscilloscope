@@ -39,12 +39,22 @@ A high-performance, bare-metal digital oscilloscope built on the ATmega328P micr
 
 ### Stream Capture & Framing Protocol (Phase 4)
 - **Data Framing:** Implemented a custom 2-byte binary packet structure to eliminate byte misalignment during live capture:
-  - **Header Byte (`b1`):** `0x80 | ((ADC >> 7) & 0x07)` $\rightarrow$ Bit 7 is forced high (`1`) to mark frame start; carries 3 MSBs (`ADC[9:7]`).
-  - **Payload Byte (`b2`):** `ADC & 0x7F` $\rightarrow$ Bit 7 is forced low (`0`) as a data tag; carries 7 LSBs (`ADC[6:0]`).
+  - **Header Byte (`b1`):** `0x80 | ((ADC >> 7) & 0x07)` → Bit 7 is forced high (`1`) to mark frame start; carries 3 MSBs (`ADC[9:7]`).
+  - **Payload Byte (`b2`):** `ADC & 0x7F` → Bit 7 is forced low (`0`) as a data tag; carries 7 LSBs (`ADC[6:0]`).
 - **Timing Pacing:** Paced by Timer1 CTC mode at 1 kHz to maintain strict deterministic sampling without ISR blocking or UART queue lockups.
 - **Python Parser (`host/parser.py`):** Reconstructs true 10-bit resolution ($0–1023$) using bitwise operations:
-  $$\text{ADC Sample} = ((\text{b1} \:\&\: \text{0x07}) \ll 7) \:|\: (\text{b2} \:\&\: \text{0x7F})$$
+
+$$\text{ADC Sample} = ((b_1 \ \& \ 0\text{x}07) \ll 7) \ | \ (b_2 \ \& \ 0\text{x}7\text{F})$$
+
 - **Stream Verification:** Verified raw binary hex stream over UART at 115,200 Baud using real-time voltage decoding scripts.
+
+### PC Visualization & Real-Time Oscilloscope GUI (Phase 5)
+- **Host GUI (`host/gui.py`):** Developed a dark-themed, real-time desktop visualization suite built with `PyQt6` and `PyQtGraph`.
+- **Multithreaded Serial Pipeline:**
+  - Dedicated background thread (`QThread`) handles high-speed UART parsing without blocking UI loop execution.
+  - Utilizes a fixed-size ring buffer (`collections.deque`, $N=1000$) maintaining a 1-second sliding time window ($1\text{ ms/sample}$).
+- **High-Framerate Rendering:** GPU-accelerated OpenGL plotting decoupled from serial intake, maintaining continuous 60 FPS refresh rates.
+- **Waveform Plot:** Configured display with voltage scaling ($0–5\text{ V}$), millisecond time axes, grid overlays, and signal traces.
 
 ---
 
